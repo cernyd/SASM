@@ -48,7 +48,7 @@
 MainWindow::MainWindow(const QStringList &args, QWidget *parent)
     : QMainWindow(parent), settings("SASM Project", "SASM")
 {
-    setWindowTitle("SASM");
+    setWindowTitle("SASM - AWSM mod v0.1");
     setWindowIcon(QIcon(":images/mainIcon.png"));
 
     //! Set save and open directory
@@ -148,6 +148,7 @@ void MainWindow::initUi()
 
     //! Create tabs
     tabs = new QTabWidget;
+    tabs->tabBar()->setStyleSheet("QTabBar {font-size: 15px}");
     connect(tabs, SIGNAL(tabCloseRequested(int)), this, SLOT(deleteTab(int)));
     connect(tabs, SIGNAL(currentChanged(int)), this, SLOT(changeCurrentTab(int)));
     tabs->setTabsClosable(true);
@@ -965,7 +966,7 @@ void MainWindow::buildProgram(bool debugMode)
         printLogWithTime(tr("Warning! Errors have occurred in the build:") + '\n', Qt::red);
 
         //! Print errors
-        printLog(logText, Qt::red);
+        printLog(logText, Qt::red);  // Error log
         if (!disableLinking) {
             logFile.setFileName(linkerOutput);
             logFile.open(QIODevice::ReadOnly);

@@ -39,6 +39,7 @@
 ****************************************************************************/
 
 #include "ruqplaintextedit.h"
+#include <qDebug>
 
 /**
  * @file ruplaintextedit.cpp
@@ -57,7 +58,6 @@ RuQPlainTextEdit::RuQPlainTextEdit(QWidget *parent) :
     setDebugDisabled();
 
     QSettings keySettings(Common::applicationDataPath() + "/keys.ini", QSettings::IniFormat);
-
     commentAction = new QAction(tr("Comment"), this);
     QString key = keySettings.value("comment", "default").toString();
     QKeySequence stdKey = QKeySequence(QString("Shift+Ctrl+A"));
@@ -73,6 +73,12 @@ RuQPlainTextEdit::RuQPlainTextEdit(QWidget *parent) :
         key = stdKey.toString();
     uncommentAction->setShortcut(key);
     connect(uncommentAction, SIGNAL(triggered()), this, SLOT(uncommentSelectedCode()));
+
+    stdKey = QKeySequence("Ctrl+/");
+    key = stdKey.toString();
+    blockCommentToggleAction = new QAction(tr("Toggle block comment"), this);
+    blockCommentToggleAction->setShortcut(key);
+    connect(blockCommentToggleAction, SIGNAL(triggered()), this, SLOT(toggleBlockComment()));
 
     undoAction = new QAction(tr("Undo"), this);
     undoAction->setShortcut(QKeySequence::Undo);
@@ -118,8 +124,8 @@ QMenu * RuQPlainTextEdit::createMenu()
 
     //! if nothing selected
     if (textCursor.selectionEnd() - textCursor.selectionStart() <= 0) {
-        commentAction->setEnabled(false);
-        uncommentAction->setEnabled(false);
+//        commentAction->setEnabled(false);
+//        uncommentAction->setEnabled(false);
         cutAction->setEnabled(false);
         copyAction->setEnabled(false);
         deleteAction->setEnabled(false);
@@ -156,6 +162,7 @@ QMenu * RuQPlainTextEdit::createMenu()
 
     menu->addAction(addWatchAction);
     menu->addSeparator();
+    menu->addAction(blockCommentToggleAction);
     menu->addAction(commentAction);
     menu->addAction(uncommentAction);
     menu->addSeparator();
@@ -188,11 +195,23 @@ void RuQPlainTextEdit::deleteSelected()
     textCursor.removeSelectedText();
 }
 
+void RuQPlainTextEdit::toggleBlockComment()
+{
+    selectLines();
+    QTextCursor cursor = textCursor();
+    QString text = cursor.selectedText();
+
+    if (text.contains(commentedLine) || text.startsWith(QString(';'))){
+        uncommentSelectedCode();
+    }else{
+        commentSelectedCode();
+    }
+}
+
 void RuQPlainTextEdit::commentSelectedCode()
 {
     QTextCursor cursor = textCursor();
-    QString selected = cursor.selectedText().replace(QString(QChar::ParagraphSeparator),
-                                                    QString(QChar::ParagraphSeparator) + QString(';'));
+    QString selected = cursor.selectedText().replace(newline, commentedLine);
     selected.insert(0, QChar(';'));
     cursor.removeSelectedText();
     cursor.insertText(selected);
@@ -201,8 +220,8 @@ void RuQPlainTextEdit::commentSelectedCode()
 void RuQPlainTextEdit::uncommentSelectedCode()
 {
     QTextCursor cursor = textCursor();
-    QString selected = cursor.selectedText().replace(QString(QChar::ParagraphSeparator) + QString(';'),
-                                                     QString(QChar::ParagraphSeparator));
+    QString selected = cursor.selectedText().replace(commentedLine, newline);
+
     if (selected[0] == QChar(';'))
         selected.remove(0, 1);
     cursor.removeSelectedText();
@@ -277,8 +296,30 @@ void RuQPlainTextEdit::setDebugEnabled()
     debugEnabled = true;
 }
 
+void RuQPlainTextEdit::selectLines(){
+    QTextCursor cursor = textCursor();
+    int startPos = cursor.selectionStart();
+    int endPos = cursor.selectionEnd();
+
+    if (endPos == startPos){
+        cursor.select(QTextCursor::LineUnderCursor);
+        this->setTextCursor(cursor);
+    }
+
+    // Set selection start
+    cursor.setPosition(startPos);
+    cursor.movePosition(QTextCursor::StartOfLine, QTextCursor::MoveAnchor);
+    this->setTextCursor(cursor);
+
+    // Set selection end
+    cursor.setPosition(endPos, QTextCursor::KeepAnchor);
+    cursor.movePosition(QTextCursor::EndOfLine, QTextCursor::KeepAnchor);
+    this->setTextCursor(cursor);
+}
+
 RuQPlainTextEdit::~RuQPlainTextEdit()
 {
+    delete blockCommentToggleAction;
     delete commentAction;
     delete uncommentAction;
     delete undoAction;

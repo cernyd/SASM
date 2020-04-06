@@ -348,31 +348,40 @@ void CodeEditor::keyPressEvent(QKeyEvent *e)
     QString curString = textCursor().block().text();
     int indentWidth = -1;
     switch (e->key()) {
-    case (Qt::Key_Tab) :
-        if (! (e->modifiers() & Qt::ShiftModifier))
-            putTab();
-        break;
-    case (Qt::Key_Enter) :
-    case (Qt::Key_Return) :
-        while (curString[++indentWidth] == ' ');
-        QPlainTextEdit::keyPressEvent(e);
-        for (int i = 0; i < indentWidth; i++)
-            insertPlainText(" ");
-        break;
-    case (Qt::Key_Q) :
-        if ((e->modifiers() & Qt::ShiftModifier) && (e->modifiers() & Qt::ControlModifier))
-            commentSelectedCode();
-        else
+        case (Qt::Key_Slash):
+            if (e->modifiers() & Qt::ControlModifier)
+                toggleBlockComment();
+            else
+                QPlainTextEdit::keyPressEvent(e);
+            break;
+
+        case (Qt::Key_Tab):
+            if (! (e->modifiers() & Qt::ShiftModifier))
+                putTab();
+            break;
+
+        case (Qt::Key_Enter): case (Qt::Key_Return):
+            while (curString[++indentWidth] == ' ');
             QPlainTextEdit::keyPressEvent(e);
-        break;
-    case (Qt::Key_A) :
-        if ((e->modifiers() & Qt::ShiftModifier) && (e->modifiers() & Qt::ControlModifier))
-            uncommentSelectedCode();
-        else
+            for (int i = 0; i < indentWidth; i++)
+                insertPlainText(" ");
+            break;
+
+        case (Qt::Key_Q):
+            if ((e->modifiers() & Qt::ShiftModifier) && (e->modifiers() & Qt::ControlModifier))
+                commentSelectedCode();
+            else
+                QPlainTextEdit::keyPressEvent(e);
+            break;
+
+        case (Qt::Key_A):
+            if ((e->modifiers() & Qt::ShiftModifier) && (e->modifiers() & Qt::ControlModifier))
+                uncommentSelectedCode();
+            else
+                QPlainTextEdit::keyPressEvent(e);
+            break;
+        default:
             QPlainTextEdit::keyPressEvent(e);
-        break;
-    default:
-        QPlainTextEdit::keyPressEvent(e);
     }
 }
 

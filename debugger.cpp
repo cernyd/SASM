@@ -341,6 +341,7 @@ void Debugger::processAction(QString output, QString error)
                 QString recievedSignal = signalMsg.cap(1);
                 if (QRegExp("SIG(TRAP|INT)").indexIn(recievedSignal) == -1) {
                     emit printLog(recievedSignal, Qt::red);
+                    // TODO: Error log printed here
                 }
                 msg.remove(signalMsg);
             }

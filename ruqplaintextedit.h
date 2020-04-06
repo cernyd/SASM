@@ -91,6 +91,8 @@ private:
     RuQPlainTextEdit::Watch variableOnCurrentLine();
 
     QPointer<QMenu> contextMenu;
+    //! Toggles comments
+    QAction *blockCommentToggleAction;
     //! Creates a comment
     QAction *commentAction;
     //! Removes a comment
@@ -113,8 +115,15 @@ private:
     QAction *addWatchAction;
     //! Used to keep track if the debugger is enabled.
     bool debugEnabled;
+    //! Edit selection to select entire lines
+    void selectLines();
+
+    const QString commentedLine = QString(QChar::ParagraphSeparator) + QString(';');
+    const QString newline = QString(QChar::ParagraphSeparator);
 
 public slots:
+    //! Method that toggle block comment of selected code
+    void toggleBlockComment();
     //! Method that comments the user selected code.
     void commentSelectedCode();
     //! Method for uncommenting a previously commented code block.
