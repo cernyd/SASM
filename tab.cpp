@@ -112,9 +112,6 @@ void Tab::setFonts()
     output->setFont(logFont);
 }
 
-
-
-
 /*! \brief
  *
  *

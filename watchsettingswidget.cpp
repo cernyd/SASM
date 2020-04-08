@@ -74,7 +74,7 @@ WatchSettingsWidget::WatchSettingsWidget(QWidget *parent) :
     typeComboBox->insertItems(0, comboBoxList);
 
     QStringList sizeBoxList;
-    sizeBoxList << tr("d") << tr("w") << tr("b") << tr("q");
+    sizeBoxList << tr("dword") << tr("word") << tr("byte") << tr("quadword");
     sizeComboBox->insertItems(0, sizeBoxList);
 
     addressCheckbox->setChecked(false);

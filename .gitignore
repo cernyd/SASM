@@ -20,3 +20,9 @@ Thumbs.db
 doc/*
 .qmake.stash
 sasm.app
+*.md5
+*.Debug
+*.Release
+*.html
+html/
+latex/

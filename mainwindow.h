@@ -156,10 +156,11 @@ private:
     QAction *aboutAction;
 
     //! Toolbars
-    QToolBar *fileToolBar;
-    QToolBar *editToolBar;
-    QToolBar *buildToolBar;
-    QToolBar *debugToolBar;
+//    QToolBar *fileToolBar;
+//    QToolBar *editToolBar;
+//    QToolBar *buildToolBar;
+//    QToolBar *debugToolBar;
+    QToolBar *toolBar;
 
     //! Builder and debugger and all that concern to them
     QProcess *runProcess;
@@ -167,7 +168,7 @@ private:
     QTimer *timer;
     QTime programExecutionTime;
     Debugger *debugger;
-    bool programIsBuilded;
+    bool programIsBuilt;
     QPointer<DebugTableWidget> registersWindow;
     QDockWidget *registersDock;
     QPointer<DebugTableWidget> memoryWindow;

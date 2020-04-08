@@ -39,6 +39,7 @@
 ****************************************************************************/
 
 #include "debugtablewidget.h"
+#include <qdebug.h>
 
 /**
  * @file debugtablewidget.cpp
@@ -145,73 +146,103 @@ void DebugTableWidget::deleteVariable()
 void DebugTableWidget::addVariable(const QString &variableName, int rowNumber)
 {
     empty = false;
-    if (type == memoryTable) {
-        if (rowNumber == -1)
-            rowNumber = rowCount() - 1;
-        insertRow(rowNumber);
-        QTableWidgetItem *name = new QTableWidgetItem(variableName);
-        QTableWidgetItem *value = new QTableWidgetItem;
-        WatchSettingsWidget *settings = new WatchSettingsWidget;
-        connect(settings, SIGNAL(settingsChanged()), this, SIGNAL(debugShowMemory()));
-        setItem(rowNumber, 0, name);
-        setItem(rowNumber, 1, value);
-        setCellWidget(rowNumber, 2, settings);
-        resizeColumnsToContents();
-    }
+    if (type != memoryTable) return;
+
+    if (rowNumber == -1)
+        rowNumber = rowCount() - 1;
+    insertRow(rowNumber);
+    QTableWidgetItem *name = new QTableWidgetItem(variableName);
+    if (variableName != "Add variable...") name->setTextColor(QColor(153, 0, 204));
+    QTableWidgetItem *value = new QTableWidgetItem;
+    WatchSettingsWidget *settings = new WatchSettingsWidget;
+    connect(settings, SIGNAL(settingsChanged()), this, SIGNAL(debugShowMemory()));
+    setItem(rowNumber, 0, name);
+    setItem(rowNumber, 1, value);
+    setCellWidget(rowNumber, 2, settings);
+    resizeColumnsToContents();
 }
 
 void DebugTableWidget::addVariable(const RuQPlainTextEdit::Watch &variable, int rowNumber)
 {
     empty = false;
-    if (type == memoryTable) {
-        if (rowNumber == -1)
-            rowNumber = rowCount() - 1;
-        insertRow(rowNumber);
-        QTableWidgetItem *name = new QTableWidgetItem(variable.name);
-        QTableWidgetItem *value = new QTableWidgetItem;
-        WatchSettingsWidget *settings = new WatchSettingsWidget;
-        settings->sizeComboBox->setCurrentIndex(variable.size);
-        settings->typeComboBox->setCurrentIndex(variable.type);
-        settings->addressCheckbox->setChecked(variable.address);
-        if (variable.arraySize > 0)
-            settings->arraySizeEdit->setText(QString::number(variable.arraySize));
-        connect(settings, SIGNAL(settingsChanged()), this, SIGNAL(debugShowMemory()));
-        setItem(rowNumber, 0, name);
-        setItem(rowNumber, 1, value);
-        setCellWidget(rowNumber, 2, settings);
-        resizeColumnsToContents();
-    }
+    if (type != memoryTable) return;
+
+    if (rowNumber == -1)
+        rowNumber = rowCount() - 1;
+    insertRow(rowNumber);
+    QTableWidgetItem *name = new QTableWidgetItem(variable.name);
+    QTableWidgetItem *value = new QTableWidgetItem;
+    WatchSettingsWidget *settings = new WatchSettingsWidget;
+
+    settings->sizeComboBox->setCurrentIndex(variable.size);
+    settings->typeComboBox->setCurrentIndex(variable.type);
+    settings->addressCheckbox->setChecked(variable.address);
+
+    if (variable.arraySize > 0)
+        settings->arraySizeEdit->setText(QString::number(variable.arraySize));
+
+    connect(settings, SIGNAL(settingsChanged()), this, SIGNAL(debugShowMemory()));
+    setItem(rowNumber, 0, name);
+    setItem(rowNumber, 1, value);
+    setCellWidget(rowNumber, 2, settings);
+    resizeColumnsToContents();
+
 }
 
 void DebugTableWidget::addRegister(const QString &name, const QString &hexValue, const QString &decValue, int rowNumber)
 {
     empty = false;
-    if (type == registersTable) {
-        if (item(rowNumber, 2)) {
-            item(rowNumber, 0)->setText(name);
-            if (hexValue.isEmpty())
-                item(rowNumber, 1)->setText("");
-            else
-                item(rowNumber, 1)->setText(hexValue);
-            item(rowNumber, 2)->setText(decValue);
-        } else {
-            QTableWidgetItem *nameItem = new QTableWidgetItem(name);
-            QTableWidgetItem *hexValueItem;
-            if (hexValue.isEmpty())
-                hexValueItem = new QTableWidgetItem("");
-            else
-                hexValueItem = new QTableWidgetItem(hexValue);
-            QTableWidgetItem *decValueItem = new QTableWidgetItem(decValue);
-            QFont monoFont("Courier");
-            monoFont.setStyleHint(QFont::Monospace);
-            hexValueItem->setFont(monoFont);
-            decValueItem->setFont(monoFont);
-            setItem(rowNumber, 0, nameItem);
-            setItem(rowNumber, 1, hexValueItem);
-            setItem(rowNumber, 2, decValueItem);
-        }
-        resizeColumnsToContents();
+
+    if (type != registersTable) return;
+
+    if (!firstTime && hexValue != item(rowNumber, 1)->text() && name.toUpper() != "EIP"){
+        QString oldHex = item(rowNumber, 1)->text();
+        QString oldDec = item(rowNumber, 2)->text();
+
+        item(rowNumber, 1)->setBackgroundColor(QColor(179, 255, 179));
+        item(rowNumber, 1)->setToolTip(oldHex + " -> " + hexValue);
+        item(rowNumber, 2)->setBackgroundColor(QColor(179, 255, 179));
+        item(rowNumber, 2)->setToolTip(oldDec + " -> " + decValue);
+    }else if (!firstTime){
+        item(rowNumber, 1)->setBackgroundColor(Qt::white);
+        item(rowNumber, 1)->setToolTip("");
+        item(rowNumber, 2)->setBackgroundColor(Qt::white);
+        item(rowNumber, 2)->setToolTip("");
     }
+
+    if (item(rowNumber, 2)) {
+        item(rowNumber, 0)->setText(name);
+        if (hexValue.isEmpty())
+            item(rowNumber, 1)->setText("");
+        else
+            item(rowNumber, 1)->setText(hexValue);
+        item(rowNumber, 2)->setText(decValue);
+    } else {
+        QTableWidgetItem *nameItem = new QTableWidgetItem(name);
+        QTableWidgetItem *hexValueItem;
+        if (hexValue.isEmpty())
+            hexValueItem = new QTableWidgetItem("");
+        else
+            hexValueItem = new QTableWidgetItem(hexValue);
+        QTableWidgetItem *decValueItem = new QTableWidgetItem(decValue);
+        QFont monoFont("Courier");
+        monoFont.setStyleHint(QFont::Monospace);
+        hexValueItem->setFont(monoFont);
+        decValueItem->setFont(monoFont);
+        setItem(rowNumber, 0, nameItem);
+        setItem(rowNumber, 1, hexValueItem);
+        setItem(rowNumber, 2, decValueItem);
+    }
+    resizeColumnsToContents();
+
+    QTableWidgetItem *nameItem = item(rowNumber, 0);
+    QTableWidgetItem *hexItem = item(rowNumber, 1);
+    QTableWidgetItem *decItem = item(rowNumber, 2);
+
+    nameItem->setText(name.toUpper());
+    nameItem->setTextColor(QColor(153, 0, 204));  // Violet color
+    nameItem->setFlags(nameItem->flags() ^ Qt::ItemIsEditable);
+
 }
 
 bool DebugTableWidget::isEmpty()

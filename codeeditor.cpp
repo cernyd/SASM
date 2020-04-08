@@ -39,6 +39,7 @@
 ****************************************************************************/
 
 #include "codeeditor.h"
+#include <qdebug.h>
 
 /**
  * @file codeeditor.cpp
@@ -181,7 +182,7 @@ void CodeEditor::lineNumberAreaMousePressEvent(QMouseEvent *event)
 void CodeEditor::setBreakpointOnCurrentLine()
 {
     if (hasBreakpoints) {
-        int lineNumber = textCursor().blockNumber() + 1;
+        int lineNumber = currentLineNumber();
         if (lineNumber <= document()->lineCount()) {
             //blocks counting starts with 0
             lineNumber = document()->findBlockByLineNumber(lineNumber - 1).blockNumber() + 1; //line number to paint
@@ -237,6 +238,27 @@ void CodeEditor::highlightCurrentLine()
             setExtraSelections(extraSelections);
         }
     }
+}
+
+void CodeEditor::highlightErrors(std::vector<int> errorLines){
+    QTextEdit::ExtraSelection selection;
+
+    selection.format.setBackground(QColor(255, 128, 128));
+    selection.format.setProperty(QTextFormat::FullWidthSelection, true);
+    selection.format.setForeground(Qt::black);
+    selection.format.setToolTip("This is an error tooltip");
+
+    selection.cursor = textCursor();
+    selection.cursor.setPosition(0);
+    selection.cursor.movePosition(QTextCursor::NextBlock, QTextCursor::MoveAnchor, errorLines[0] - 1);
+    selection.cursor.movePosition(QTextCursor::EndOfLine);
+    selection.cursor.clearSelection();
+    setTextCursor(selection.cursor);
+
+    QList<QTextEdit::ExtraSelection> extra;
+    extra.append(selection);
+
+    setExtraSelections(extra);
 }
 
 void CodeEditor::highlightDebugLine(int lineNumber)
@@ -461,6 +483,10 @@ bool CodeEditor::isMacroOnCurrentDebugLine()
         }
     }
     return false;
+}
+
+int CodeEditor::currentLineNumber(){
+    return textCursor().blockNumber() + 1;
 }
 
 CodeEditor::~CodeEditor()

@@ -39,6 +39,7 @@
 ****************************************************************************/
 
 #include "mainwindow.h"
+#include <qdebug.h>
 
 /**
  * @file mainwindow.cpp
@@ -55,7 +56,7 @@ MainWindow::MainWindow(const QStringList &args, QWidget *parent)
     saveOpenDirectory = settings.value("saveopendirectory", QString(Common::applicationDataPath() + "/Projects")).toString();
 
     //! Initial variables
-    programIsBuilded = false;
+    programIsBuilt = false;
     prevCodeEditor = 0;
     findDialog = 0;
     settingsWindow = 0;
@@ -191,6 +192,7 @@ void MainWindow::createMenus()
     fileMenu->addAction(saveExeAction);
     fileMenu->addSeparator();
     fileMenu->addAction(exitAction);
+
     editMenu = menuBar()->addMenu(tr("Edit"));
     editMenu->addAction(findAction);
     editMenu->addSeparator();
@@ -209,8 +211,10 @@ void MainWindow::createMenus()
     editMenu->addSeparator();
     editMenu->addAction(putTabAction);
     editMenu->addAction(deleteTabAction);
+
     connect(editMenu, SIGNAL(aboutToShow()), this, SLOT(refreshEditMenu()));
     connect(tabs, SIGNAL(currentChanged(int)), this, SLOT(refreshEditMenu()));
+
     buildMenu = menuBar()->addMenu(tr("Build"));
     buildMenu->addAction(buildAction);
     buildMenu->addSeparator();
@@ -220,6 +224,7 @@ void MainWindow::createMenus()
     #endif
     buildMenu->addSeparator();
     buildMenu->addAction(stopAction);
+
     debugMenu = menuBar()->addMenu(tr("Debug"));
     debugMenu->addAction(debugAction);
     debugMenu->addSeparator();
@@ -231,8 +236,10 @@ void MainWindow::createMenus()
     debugMenu->addAction(debugShowMemoryAction);
     debugMenu->addSeparator();
     debugMenu->addAction(stopAction);
+
     settingsMenu = menuBar()->addMenu(tr("Settings"));
     settingsMenu->addAction(settingsAction);
+
     helpMenu = menuBar()->addMenu(tr("Help"));
     helpMenu->addAction(helpAction);
     helpMenu->addAction(aboutAction);
@@ -485,32 +492,25 @@ void MainWindow::createActions()
 
 void MainWindow::createToolBars()
 {
-    fileToolBar = addToolBar(tr("File"));
-    fileToolBar->addAction(newAction);
-    fileToolBar->addAction(openAction);
-    fileToolBar->addAction(saveAction);
-    fileToolBar->setObjectName("File");
-
-    editToolBar = addToolBar(tr("Edit"));
-    editToolBar->addAction(undoAction);
-    editToolBar->addAction(redoAction);
-    editToolBar->addAction(cutAction);
-    editToolBar->addAction(copyAction);
-    editToolBar->addAction(pasteAction);
-    editToolBar->setObjectName("Edit");
-
-    buildToolBar = addToolBar(tr("Build"));
-    buildToolBar->addAction(buildAction);
-    buildToolBar->addAction(runAction);
-    buildToolBar->addAction(stopAction);
-    buildToolBar->setObjectName("Build");
-
-    debugToolBar = addToolBar(tr("Debug"));
-    debugToolBar->addAction(debugAction);
-    debugToolBar->addAction(debugNextNiAction);
-    debugToolBar->addAction(debugNextAction);
-    debugToolBar->addAction(stopAction);
-    debugToolBar->setObjectName("Debug");
+    toolBar = addToolBar(tr("Toolbar"));
+    toolBar->addAction(newAction);
+    toolBar->addAction(openAction);
+    toolBar->addAction(saveAction);
+    toolBar->addSeparator();
+    toolBar->addAction(undoAction);
+    toolBar->addAction(redoAction);
+    toolBar->addAction(cutAction);
+    toolBar->addAction(copyAction);
+    toolBar->addAction(pasteAction);
+    toolBar->addSeparator();
+    toolBar->addAction(buildAction);
+    toolBar->addAction(runAction);
+    toolBar->addSeparator();
+    toolBar->addAction(debugAction);
+    toolBar->addAction(debugNextNiAction);
+    toolBar->addAction(debugNextAction);
+    toolBar->addAction(stopAction);
+    toolBar->setObjectName("Toolbar");
 
     restoreState(settings.value("windowstate").toByteArray());
 }
@@ -676,10 +676,10 @@ bool MainWindow::saveAsFile(int index)
 
 void MainWindow::saveExe()
 {
-    if (!programIsBuilded) {
+    if (!programIsBuilt) {
         buildProgram();
     }
-    if (!programIsBuilded) {
+    if (!programIsBuilt) {
        return;
     }
     QString saveFileName = QFileDialog::getSaveFileName(this, tr("Save .exe file"), saveOpenDirectory,
@@ -812,7 +812,7 @@ void MainWindow::buildProgram(bool debugMode)
 {
     saveFile(-1, false); //save file before building if program already was saved
 
-    programIsBuilded = false;
+    programIsBuilt = false;
 
     using Common::applicationDataPath;
     printLogWithTime(tr("Build started...") + '\n', Qt::black);
@@ -887,8 +887,8 @@ void MainWindow::buildProgram(bool debugMode)
 
     //! GCC
     QString linkerOptions = "$PROGRAM.OBJ$ $MACRO.OBJ$ -g -o $PROGRAM$ -m32";
-    if (settings.contains("linkingoptions"))
-        linkerOptions = settings.value("linkingoptions").toString();
+    // TODO: Temporary fix
+    if (settings.contains("linkingoptions")) linkerOptions = settings.value("linkingoptions").toString();
     //! macro.c compilation/copying
     QFile macro;
     #ifdef Q_OS_WIN32
@@ -928,6 +928,7 @@ void MainWindow::buildProgram(bool debugMode)
         linkerArguments.replaceInStrings("$PROGRAM$", Common::pathInTemp("SASMprog.exe"));
         linkerArguments.replaceInStrings("$SOURCE$", Common::pathInTemp("program.asm"));
         linkerArguments.replaceInStrings("$LSTOUTPUT$", Common::pathInTemp("program.lst"));
+        // TODO: Fix dll
         QProcess linkerProcess;
         linkerOutput = Common::pathInTemp("linkererror.txt");
         linkerProcess.setStandardOutputFile(linkerOutput);
@@ -957,13 +958,19 @@ void MainWindow::buildProgram(bool debugMode)
     }
     logFile.close();
 
-    bool builded;
-    if (QFile::exists(Common::pathInTemp("SASMprog.exe")))
-        builded = true;
-    else
-        builded = false;
-    if (!builded) {
+    bool built = QFile::exists(Common::pathInTemp("SASMprog.exe"));
+    if (!built) {
         printLogWithTime(tr("Warning! Errors have occurred in the build:") + '\n', Qt::red);
+
+        //! Highlight errors
+        Tab *currentTab = (Tab *) tabs->currentWidget();
+        QRegExp errorLines("([1-9][0-9]*):[ ]error:[ ]" ,Qt::CaseInsensitive);
+        int pos = errorLines.indexIn(logText);
+        if (pos != -1){
+            int line_num = QString(errorLines.cap(1)).toUInt();
+            std::vector<int> error_lines = {line_num};
+            currentTab->code->highlightErrors(error_lines);
+        }
 
         //! Print errors
         printLog(logText, Qt::red);  // Error log
@@ -989,7 +996,7 @@ void MainWindow::buildProgram(bool debugMode)
             logFile.close();
             printLog(logText, Qt::red);
         }
-        programIsBuilded = true;
+        programIsBuilt = true;
     }
 }
 
@@ -1000,10 +1007,10 @@ void MainWindow::runProgram()
         return;
     }
     outputIndex = tabs->currentIndex();
-    if (!programIsBuilded) {
+    if (!programIsBuilt) {
         buildProgram();
     }
-    if (!programIsBuilded) {
+    if (!programIsBuilt) {
        return;
     }
 
@@ -1068,10 +1075,10 @@ void MainWindow::testStopOfProgram()
 
 void MainWindow::runExeProgram()
 {
-    if (!programIsBuilded) {
+    if (!programIsBuilt) {
         buildProgram();
     }
-    if (!programIsBuilded) {
+    if (!programIsBuilt) {
        return;
     }
 
@@ -1115,7 +1122,7 @@ void MainWindow::printLog(const QString &message, const QColor &color)
 
 void MainWindow::setProgramBuildedFlagToFalse()
 {
-    programIsBuilded = false;
+    programIsBuilt = false;
 }
 
 void MainWindow::printOutput(QString msg, int index)
@@ -1134,7 +1141,7 @@ void MainWindow::debug()
     if (!debugger) {
         debuggerWasStarted = false;
         buildProgram(true);
-        if (!programIsBuilded) {
+        if (!programIsBuilt) {
             printLogWithTime(tr("Before debugging you need to build the program.") + '\n', Qt::red);
             return;
         }

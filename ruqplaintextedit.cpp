@@ -54,7 +54,6 @@ RuQPlainTextEdit::RuQPlainTextEdit(QWidget *parent) :
     palette.setColor(QPalette::Base, settings.value("backgroundcolor", palette.color(QPalette::Base)).value<QColor>());
     palette.setColor(QPalette::Text, settings.value("fontcolor", palette.color(QPalette::Text)).value<QColor>());
     setPalette(palette);
-
     setDebugDisabled();
 
     QSettings keySettings(Common::applicationDataPath() + "/keys.ini", QSettings::IniFormat);

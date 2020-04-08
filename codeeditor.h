@@ -87,6 +87,7 @@ public slots:
     void deleteTab();
     void highlightCurrentLine();
     void highlightDebugLine(int lineNumber);
+    void highlightErrors(std::vector<int> errorLines);
     void setDebugMode(bool mode);
     QList<int> *getBreakpoints();
     void setBreakpointOnCurrentLine();
@@ -114,6 +115,7 @@ private:
     bool hasBreakpoints;
     int prevBlockCount;
     QSettings settings;
+    int currentLineNumber();
 
 signals:
     void breakpointsChanged(quint64 lineNumber, bool isAdded);
@@ -142,6 +144,7 @@ protected:
 
 private:
     CodeEditor *codeEditor;
+
 };
 
 #endif
